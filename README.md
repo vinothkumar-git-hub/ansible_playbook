@@ -1,2 +1,2 @@
 # ansible_playbook
-ansible playbooks for ansible automation
+ansible playbooks for automation
