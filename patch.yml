@@ -1,0 +1,27 @@
+---
+- name: "Linux Patching has begun"
+  hosts: all
+  gather_facts: True
+  become: yes
+  become_method: sudo
+  tasks:
+    - include: tasks/rhel7.yaml
+      when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "7"
+    - include: tasks/rhel8.yaml
+      when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "8"
+    - include: tasks/rhel9.yaml
+      when: ansible_distribution == "RedHat" and ansible_distribution_major_version == "9"
+    - include: tasks/cent7.yaml
+      when: ansible_distribution == "CentOS" and ansible_distribution_major_version == "7"
+    - include: tasks/cent8.yaml
+      when: ansible_distribution == "CentOS" and ansible_distribution_major_version == "8"
+    - include: tasks/deb_ubun.yaml
+      when: ansible_distribution == "Ubuntu" or ansible_distribution == "Debian"
+    - include: tasks/rocky8.yaml
+      when: ansible_distribution == "Rocky" and ansible_distribution_major_version == "8"
+    - include: tasks/rocky9.yaml
+      when: ansible_distribution == "Rocky" and ansible_distribution_major_version == "9"
+    - include: tasks/oracle8.yaml
+      when: ansible_distribution == "OracleLinux" and ansible_distribution_major_version == "8"
+    - include: tasks/oracle9.yaml
+      when: ansible_distribution == "OracleLinux" and ansible_distribution_major_version == "9"
