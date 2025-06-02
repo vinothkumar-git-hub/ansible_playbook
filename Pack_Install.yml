@@ -1,0 +1,315 @@
+# this playbook is to install all agents on Linux Debian and RHEL
+# 1- CarbonBlack EDR, tags: EDR
+# 2- Trellix,         tags: trellix
+# 3- McAfee,          tags: mcafee
+# 4- Rapid7,          tags: rapid7
+
+# CarbonBlack
+---
+
+- hosts: all
+  become: yes
+  become_method: sudo
+  tags: EDR
+  tasks:
+    - name: Check EDR version on RHEL
+      when: ansible_distribution in ["RedHat", "CentOS", "OracleLinux", "Rocky"]
+      shell: rpm -qa | grep -i cb-psc-sensor | grep 2.16
+      register: edr_rhel
+      ignore_errors: yes
+
+    - name: Check EDR version on Ubuntu
+      when: ansible_distribution in ["Ubuntu", "Debian"]
+      shell: dpkg-query -W cb-psc-sensor | grep 2.16
+      register: edr_ubuntu
+      ignore_errors: yes
+
+    - name: Install EDR agent on RHEL
+      when: ansible_distribution in ["RedHat", "CentOS", "OracleLinux", "Rocky"] and edr_rhel.rc != 0
+      block:
+        - name: Deleting Old EDR version on RHEL
+          yum:
+            name: cb-psc-sensor
+            state: absent
+          ignore_errors: yes
+
+        - name: creating directory on RHEL
+          file:
+            path: /temp/pkgs
+            state: directory
+
+        - name: Download deploy files to install EDR on RHEL
+          ansible.builtin.copy:
+            src: "../Packages/cb-2.16.1/cb-psc-sensor-rhel-2.16.1.3466117.tar"
+            dest: "/temp/pkgs/cb-psc-sensor-rhel-2.16.1.3466117.tar"
+            mode: 0744
+
+        - name: Extracting EDR.tar file on RHEL
+          ansible.builtin.unarchive:
+            src: /temp/pkgs/cb-psc-sensor-rhel-2.16.1.3466117.tarr
+            dest: /temp/pkgs
+            remote_src: yes
+
+        - name: Installing EDR on RHEL
+          command:
+            cmd: sudo bash /temp/pkgs//install.sh -d FP119XTOWDCT4NOSD6Z
+
+        - name: Removing installation path on RHEL
+          file:
+            path: /temp/pkgs/
+            state: absent
+
+    - name: Install EDR agent on Ubuntu
+      when: ansible_distribution in ["Ubuntu", "Debian"] and edr_ubuntu.rc != 0
+      block:
+        - name: Deleting Old EDR version on Ubuntu
+          apt:
+            name: cb-psc-sensor
+            state: absent
+          ignore_errors: yes
+
+        - name: creating directory on Ubuntu
+          file:
+            path: /temp/pkgs
+            state: directory
+
+        - name: Download deploy files to install EDR on Ubuntu
+          ansible.builtin.copy:
+            src: "../Packages/cb-2.16.1/cb-psc-sensor-ubuntu-2.16.1.3466117.tar"
+            dest: "/temp/pkgs/cb-psc-sensor-ubuntu-2.16.1.3466117.tar"
+            mode: 0744
+
+        - name: Extracting EDR.tar file on Ubuntu
+          ansible.builtin.unarchive:
+            src: /temp/pkgs/cb-psc-sensor-ubuntu-2.16.1.3466117.tar
+            dest: /temp/pkgs
+            remote_src: yes
+
+        - name: Installing EDR on Ubuntu
+          command:
+            cmd: sudo bash /temp/pkgs//install.sh -d FP119XTOWDCT4NOSD6Z
+
+        - name: Removing installation path on Ubuntu
+          file:
+            path: /temp/pkgs/
+            state: absent
+
+
+# Trellix
+- hosts: all
+  become: yes
+  become_method: sudo
+  tags: trellix
+  tasks:
+    - name: Check Trellix version on RHEL
+      when: ansible_distribution in ["RedHat", "CentOS", "OracleLinux", "Rocky"]
+      command: rpm -qa |grep -i MFEcma | grep 5.8.2
+      register: trellix_rhel
+      ignore_errors: yes
+
+    - name: Check Trellix version on Ubuntu
+      when: ansible_distribution in ["Ubuntu", "Debian"]
+      shell: dpkg-query -W mfecma | grep 5.8.2
+      register: trellix_ubuntu
+      ignore_errors: yes
+
+    - name: Install Trellix agent on RHEL
+      when: ansible_distribution in ["RedHat", "CentOS", "OracleLinux", "Rocky"] and trellix_rhel.rc != 0
+      block:
+        - name: Deleting Old McAfee on RHEL
+          yum:
+            name: MFEcma
+            state: absent
+          ignore_errors: yes
+       
+        - name: creating directory on RHEL
+          file:
+            path: /temp/pkgs
+            state: directory
+
+        - name: Download deploy files to install McAfee on RHEL
+          ansible.builtin.copy:
+            src: "../Packages/mVision_Trellix_5.8.2.sh"
+            dest: "/temp/pkgs/mVision_Trellix_5.8.2.sh"
+            mode: 0744
+
+        - name: Installing Trellix Agent on RHEL
+          shell: sudo ./mVision_Trellix_5.8.2.sh
+          args:
+            chdir: /temp/pkgs
+
+        - name: Removing installation path on RHEL
+          file:
+            path: /temp/pkgs
+            state: absent
+
+    - name: Install Trellix agent on Ubuntu
+      when: ansible_distribution in ["Ubuntu", "Debian"] and trellix_ubuntu.rc != 0
+      block:
+        - name: Deleting Old McAfee on Ubuntu
+          apt:
+            name: mfecma
+            state: absent
+          ignore_errors: yes
+       
+        - name: creating directory on Ubuntu
+          file:
+            path: /temp/pkgs
+            state: directory
+
+        - name: Download deploy files to install McAfee on Ubuntu
+          ansible.builtin.copy:
+            src: "../Packages/mVision_Trellix_5.8.2.sh"
+            dest: "/temp/pkgs/mVision_Trellix_5.8.2.sh"
+            mode: 0744
+
+        - name: Installing Trellix Agent on Ubuntu
+          shell: sudo ./mVision_Trellix_5.8.2.sh
+          args:
+            chdir: /temp/pkgs
+
+        - name: Removing installation path on Ubuntu
+          file:
+            path: /temp/pkgs
+            state: absent
+
+# McAfee
+- hosts: all
+  become: yes
+  become_method: sudo
+  tags: mcafee
+  tasks:
+    - name: Check McAfee version on RHEL
+      when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" or ansible_distribution == "OracleLinux" or ansible_distribution == "Rocky"
+      command: rpm -qa |grep -i McAfeeTP  | grep 10.7.18
+      register: mcafee_rhel
+      ignore_errors: yes
+
+    - name: Check McAfee version on Ubuntu
+      when: ansible_distribution in ["Ubuntu", "Debian"]
+      shell: dpkg-query -W mcafeetp | grep 10.7.18
+      register: mcafee_ubuntu
+      ignore_errors: yes
+
+    - name: Install McAfee agent on RHEL if not installed 
+      when: ansible_distribution in ["RedHat", "CentOS", "OracleLinux", "Rocky"] and mcafee_rhel.rc != 0
+      block:
+        - name: Deleting Old McAfee on RHEL
+          yum:
+            name: McAfeeTP
+            state: absent
+          ignore_errors: yes
+
+        - name: creating directory to install McAfee on RHEL
+          file:
+            path: /temp/pkgs
+            state: directory
+ 
+        - name: Download deploy files to install McAfee on RHEL
+          ansible.builtin.copy:
+            src: "../Packages/McAfeeTP-10.7.18-211-Release-standalone.tar.gz"
+            dest: "/temp/pkgs/McAfeeTP-10.7.18-211-Release-standalone.tar.gz"
+            mode: 0744
+
+        - name: Extract file to install McAfee on RHEL
+          unarchive:
+            src: /temp/pkgs/McAfeeTP-10.7.18-211-Release-standalone.tar.gz
+            dest: /temp/pkgs/
+            mode: 0744
+            remote_src: yes
+
+        - name: Installing McAfee on RHEL
+          shell: sudo ./install-mfetp.sh silent
+          args:
+            chdir: /temp/pkgs
+          ignore_errors: yes
+
+        - name: Removing installation path
+          file:
+            path: /temp/pkgs
+            state: absent
+
+    - name: Install McAfee agent on Ubuntu if not installed
+      when: ansible_distribution in ["Ubuntu", "Debian"] and mcafee_ubuntu.rc != 0
+      block:
+        - name: Deleting Old McAfee on Ubuntu
+          apt:
+            name: 
+              - mcafeetp
+            state: absent
+          ignore_errors: yes
+
+        - name: creating directory to install McAfee on Ubuntu
+          file:
+            path: /temp/pkgs
+            state: directory
+ 
+        - name: Download deploy files to install McAfee on Ubuntu
+          ansible.builtin.copy:
+                  
+            src: "../Packages/McAfeeTP-10.7.19-248-Release-standalone.tar.gz"
+            dest: "/temp/pkgs/McAfeeTP-10.7.19-248-Release-standalone.tar.gz"
+            mode: 0744
+
+        - name: Extract file to install McAfee on Ubuntu
+          unarchive:
+            src: /temp/pkgs/McAfeeTP-10.7.19-248-Release-standalone.tar.gz
+            dest: /temp/pkgs/
+            mode: 0744
+            remote_src: yes
+
+        - name: Installing McAfee
+          shell: sudo ./install-mfetp.sh silent
+          args:
+            chdir: /temp/pkgs
+          ignore_errors: yes 
+
+        - name: Removing installation path
+          file:
+            path: /temp/pkgs
+            state: absent
+
+###
+# mcafee installation script failed on RHEL and Ubuntu, but it works fine in centos.
+# Required Packages for ubuntu: libc6 libstdc++6 libgcc1 libncurses5 libcurl4 libxml2 openssl unzip
+# Required Packages for RHEL: glibc libstdc++ libgcc ncurses libcurl libxml2 openssl unzip
+
+# Rapid7 
+- hosts: all
+  become: yes
+  become_method: sudo
+  tags: rapid7
+  tasks:
+    - name: Check if Rapid7 agent is installed
+      command: sudo /opt/rapid7/ir_agent/ir_agent --version
+      register: rapid7_agent_installed
+      ignore_errors: yes
+ 
+    - name: Install Rapid7 agent if not installed
+      when: rapid7_agent_installed.rc != 0
+      block:
+        - name: creating directory to install rapid7
+          file:
+            path: /temp/pkgs
+            state: directory
+ 
+        - name: Download deploy files to install rapid7
+          ansible.builtin.copy:
+            src: "../Packages/Rapid7_Linux.tar.gz"
+            dest: "/temp/pkgs/Rapid7_Linux.tar.gz"
+            mode: 0744
+ 
+        - name: Extract file to install rapid7
+          unarchive:
+            src: /temp/pkgs/Rapid7_Linux.tar.gz
+            dest: /temp/pkgs/
+            mode: 0744
+            remote_src: yes
+           
+        - name: Installing Rapid7
+          shell: sudo /temp/pkgs/Rapid7_Linux/agent_installer-x86_64.sh install_start
+        - name: Removing installation path
+          file:
+            path: /temp/pkgs
+            state: absent
+...
