@@ -1,0 +1,31 @@
+- name: Check kernel version and reboot if needed
+  hosts: all
+  become: yes
+  tasks:
+    - name: Get installed kernel version
+      shell: "rpm -q --last kernel | perl -pe 's/^kernel-(\\S+).*/$1/' | head -1 | awk '{print $1}'"
+      register: installed_kernel
+
+    - name: Get currently running kernel version
+      shell: "uname -r"
+      register: running_kernel
+
+    - name: Compare kernel versions
+      debug:
+        msg: "Installed kernel: {{ installed_kernel.stdout }} | Running kernel: {{ running_kernel.stdout }}"
+      when: installed_kernel.stdout != running_kernel.stdout
+
+    - name: Reboot if versions differ
+      ansible.builtin.reboot:
+        msg: "Ansible initialted Reboot for Kernel patching"
+      async: 1
+      poll: 0
+      when: installed_kernel.stdout != running_kernel.stdout
+
+    - name: Wait for the machine to come back online
+      wait_for_connection:
+        connect_timeout: 60
+        sleep: 5
+        delay: 5
+        timeout: 300
+...
