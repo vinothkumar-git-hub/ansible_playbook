@@ -1,0 +1,66 @@
+# This Ansible playbook checks the kernel version on various Linux distributions (RedHat, CentOS, OracleLinux, Rocky, SUSE, Ubuntu, Debian)
+# and reboots the system if necessary. It ensures that the running kernel is up-to-date.
+---
+
+- name: Check kernel version and reboot if needed
+  hosts: all
+  gather_facts: yes
+  become: yes
+  tasks:
+    - name: Reboot RHEL/Centos,OracleLinux,Rocky
+      when: ansible_distribution in ["RedHat", "CentOS", "OracleLinux", "Rocky", "SUSE"] and edr_rhel.rc != 0
+      block:
+        - name: Get installed kernel version
+          shell: "rpm -q --last kernel | perl -pe 's/^kernel-(\\S+).*/$1/' | head -1 | awk '{print $1}'"
+          register: installed_kernel
+
+        - name: Get currently running kernel version
+          shell: "uname -r"
+          register: running_kernel
+
+        - name: Compare kernel versions
+          debug:
+            msg: "Installed kernel: {{ installed_kernel.stdout }} | Running kernel: {{ running_kernel.stdout }}"
+          when: installed_kernel.stdout != running_kernel.stdout
+
+        - name: Reboot if versions differ
+          ansible.builtin.reboot:
+            msg: "Ansible initialted Reboot for Kernel patching"
+          async: 1
+          poll: 0
+          when: installed_kernel.stdout != running_kernel.stdout
+
+        - name: Wait for the machine to come back online
+          wait_for_connection:
+            connect_timeout: 60
+            sleep: 5
+            delay: 5
+            timeout: 300
+
+    - name: Reboot Ubuntu/Debian
+      when: ansible_distribution in ["Ubuntu", "Debian"] and edr_ubuntu.rc != 0
+      block:
+        - name: Check if a reboot is required
+          register: reboot_required_file
+          stat: path=/var/run/reboot_required get_md5=no
+
+        - name: Reboot the host if needed
+          reboot:
+            msg: "Reboot initiated by Ansible"
+            connect_timeout: 5
+            reboot_timeout: 180
+            pre_reboot_delay: 0
+            post_reboot_delay: 30
+            test_command: uptime
+          when: reboot_required_file.stat.exists
+
+        - name: Verify new update
+          command: uname -mrs  
+          register: uname_result
+        - name: Verify uptime
+          command: uptime -p
+          register: uptime_result
+        - name: Display new kernel version and uptime
+          debug:
+            var: uname_result.stdout_lines, uptime_result.stdout_lines
+...
