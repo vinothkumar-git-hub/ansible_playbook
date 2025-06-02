@@ -1,0 +1,6 @@
+  - name: DNF update ORACLEOS major version 8 or above
+    dnf:
+      update_cache: yes
+      name: '*'
+      state: latest
+...
